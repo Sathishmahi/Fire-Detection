@@ -10,7 +10,7 @@ from itertools import combinations
 CONFIG_FILE_PATH = "config/config.yaml"
 PARAMS_FILE_PATH = "config/params.yaml"
 import utils
-" =  +"
+
 
 class FireDetector:
 
@@ -18,6 +18,7 @@ class FireDetector:
         
         self.config_content = utils.read_yaml(CONFIG_FILE_PATH).get("fire_detect")
         self.params_content = utils.read_yaml(PARAMS_FILE_PATH).get("text_params")
+        self.danger_or_not_list = []
 
     def load_model(self,model_path:str)->YOLO:
         if not os.path.exists(model_path):
@@ -27,14 +28,14 @@ class FireDetector:
 
     @staticmethod
     def download_model(model_drive_id:str,yolo_model_path:str)->None:
-        if os.path.exists(yolo_model_path):
+        if not os.path.exists(yolo_model_path):
             gdown.download(id = model_drive_id,output=yolo_model_path)
             return
         else:
             print("Model Already Exist")
 
 
-    def combine_all(self):
+    def combine_all(self)->None:
         FIRE_DETECT_DIR_NAME = "fire_detect"
         input_video_path = os.path.join(FIRE_DETECT_DIR_NAME,self.config_content.get("input_video_path"))
         output_video_path =  os.path.join(FIRE_DETECT_DIR_NAME,self.config_content.get("output_video_path"))
@@ -44,6 +45,24 @@ class FireDetector:
         self.load_model(yolo_model_path)
         sv.process_video(input_video_path,output_video_path,self.process)
         print(f"PROCESS VIDEO DONE OUT VIDEO PATH {output_video_path} ")
+
+    @staticmethod
+    def return_result(input_list:list[int],ther:int=120)->str:
+        result = []
+        sublist = [input_list[0]]
+
+        for i in range(1, len(input_list)):
+            if input_list[i] == input_list[i - 1]:
+                sublist.append(input_list[i])
+            else:
+                result.append(sublist)
+                sublist = [input_list[i]]
+
+        result.append(sublist)
+        final_li = result
+        if final_li:
+            result_str = f"safe percentage {len(final_li[-1][:ther])/ther:.2f}" if final_li[-1][0] == 0 else f"Danger percentage {len(final_li[-1][:ther])/ther:.2f}"
+        return result_str
 
     def process(self,im:np.ndarray,_)->np.ndarray:
 
@@ -55,7 +74,7 @@ class FireDetector:
         normal_thick= self.params_content.get("normal_thick")
         normal_fontface= self.params_content.get("normal_fontface")
 
-        result = self.model.predict(im,verbose  = False )
+        result = self.model.predict(im,verbose  = True )
         combi=list(combinations([i for i in result[0].boxes.data],2))
         temp = False
         for p1,p2 in combi:
@@ -82,7 +101,7 @@ class FireDetector:
                 cvzone.cornerRect(im,(x,y,w,h),colorR=[50,59,237],colorC=[0,0,255])
                 cvzone.putTextRect(im,"Stove on and no fire detected",( p1[0],p1[1]-45 ),colorT=(0,0,255),scale=2,thickness=2,offset=5)
                 cvzone.putTextRect(im,"Danger Zone",(p1[0],p1[1]-20),colorT=(0,0,255),scale=2,thickness=2,offset=5)
-
+                self.danger_or_not_list.append(1)
             if not temp and len(set(lab))>1 and abs(p2[0]-p1[0])<300:
                 for p in [p1,p2]:
                     # cv2.rectangle(im,(p[0],p[1]),(p[2],p[3]),[106, 237, 40][::-1],thickness=4)
@@ -97,4 +116,7 @@ class FireDetector:
                 fire_or_not = "fire detected" if on_off=="on" else "no fire detected"
                 cvzone.putTextRect(im,f"Stove {on_off} and {fire_or_not}",( p1[0],p1[1]-45 ),colorT=(0,255,0),scale=2,thickness=2,offset=5)
                 cvzone.putTextRect(im,"Every Thing Fine",(p1[0],p1[1]-20),colorT=(0,255,0),scale=2,thickness=2,offset=5)
+                self.danger_or_not_list.append(0)
+        danger_per = self.return_result(self.danger_or_not_list)
+        cvzone.putTextRect(im,danger_per,(30,30),scale=2,thickness=2,offset=4)
         return im
