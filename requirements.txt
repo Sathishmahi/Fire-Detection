@@ -1,3 +1,7 @@
 ultralytics 
 supervision
+streamlit
+gdown
+cvzone
+pyyaml
 opencv-python

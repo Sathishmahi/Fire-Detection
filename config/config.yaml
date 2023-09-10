@@ -1,0 +1,6 @@
+fire_detect:
+
+  input_video_path: input.mp4
+  output_video_path: output.mp4
+  model_drive_id: 127LmnnyzrsFNtYqpE9CKr-ntA6uEYIb6
+  yolo_model_path: "model.pt"

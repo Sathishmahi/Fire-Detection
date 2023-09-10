@@ -1,0 +1,11 @@
+text_params:
+
+  font: 3
+  danger_txt: Danger Zone
+  fine_txt: Every Thing Fine
+  danger_thick: 3
+  danger_fontface: 1.5
+  normal_thick: 5
+  normal_fontface: 3.
+
+  
