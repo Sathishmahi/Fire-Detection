@@ -166,4 +166,4 @@ fire_detect/
 temp_*.*
 node_modules/
 *.json
-*.mp4
+*.mp4clear
